@@ -1,5 +1,5 @@
-htmlPath: /usr/local/www/
+htmlPath: /Users/wadahana/workspace/unicorn/defla.go/frontend/html
 address : 127.0.0.1:9000
 logLevel : Debug
 logPath : console
-rootfs : /usr/local/android/
+rootfs : /Users/wadahana/workspace/unicorn/btx.go/test/sdk28

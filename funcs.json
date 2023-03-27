@@ -1,0 +1,15 @@
+[
+    {"name": "sub_4bc78", "start": "0x4bc78", "end": "0x4c394"},
+    {"name": "sub_4b430", "start": "0x4b430", "end": "0x4bc74"},
+    {"name": "sub_4aef4", "start": "0x4aef4", "end": "0x4b20c"},
+    {"name": "sub_4a8b4", "start": "0x4a8b4", "end": "0x4aef0"},
+    {"name": "sub_4c398", "start": "0x4c398", "end": "0x4cdf0"},
+    {"name": "sub_4319c", "start": "0x4319c", "end": "0x43a9c"},
+    {"name": "sub_52764", "start": "0x52764", "end": "0x5297C"},
+    {"name": "sub_5419c", "start": "0x5419c", "end": "0x542DC"},
+    {"name": "sub_5C3fC", "start": "0x5C3fC", "end": "0x5C6A4"},
+    {"name": "sub_5C6A8", "start": "0x5C6A8", "end": "0x5C910"},
+    {"name": "sub_37588", "start": "0x37588", "end": "0x37784"},
+    {"name": "sub_37788", "start": "0x37788", "end": "0x379c4"},
+    {"name": "init_proc", "start": "0x3CFB8", "end": "0x3D454"}
+]
