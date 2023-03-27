@@ -125,6 +125,83 @@ type OpDetail struct {
 	Next   uint64
 }
 
+
+type OpTypeLabel struct {
+	opType uint32
+	opName string
+}
+var opTypeLabels []OpTypeLabel = {
+	{ R_OP_TYPE_IO, "io" },
+	{ R_OP_TYPE_ACMP, "acmp" },
+	{ R_OP_TYPE_ADD, "add" },
+	{ R_OP_TYPE_SYNC, "sync" },
+	{ R_OP_TYPE_AND, "and" },
+	{ R_OP_TYPE_CALL, "call" },
+	{ R_OP_TYPE_CCALL, "ccall" },
+	{ R_OP_TYPE_CJMP, "cjmp" },
+	{ R_OP_TYPE_MJMP, "mjmp" },
+	{ R_OP_TYPE_CMP, "cmp" },
+	{ R_OP_TYPE_ILL, "ill" },
+	{ R_OP_TYPE_JMP, "jmp" },
+	{ R_OP_TYPE_LEA, "lea" },
+	{ R_OP_TYPE_LEAVE, "leave" },
+	{ R_OP_TYPE_LOAD, "load" },
+	{ R_OP_TYPE_NEW, "new" },
+	{ R_OP_TYPE_MOD, "mod" },
+	{ R_OP_TYPE_CMOV, "cmov" },
+	{ R_OP_TYPE_MOV, "mov" },
+	{ R_OP_TYPE_CAST, "cast" },
+	{ R_OP_TYPE_MUL, "mul" },
+	{ R_OP_TYPE_DIV, "div" },
+	{ R_OP_TYPE_NOP, "nop" },
+	{ R_OP_TYPE_NOT, "not" },
+	{ R_OP_TYPE_NULL, "null" },
+	{ R_OP_TYPE_OR, "or" },
+	{ R_OP_TYPE_POP, "pop" },
+	{ R_OP_TYPE_PUSH, "push" },
+	{ R_OP_TYPE_RPUSH, "rpush" },
+	{ R_OP_TYPE_REP, "rep" },
+	{ R_OP_TYPE_RET, "ret" },
+	{ R_OP_TYPE_CRET, "cret" },
+	{ R_OP_TYPE_ROL, "rol" },
+	{ R_OP_TYPE_ROR, "ror" },
+	{ R_OP_TYPE_SAL, "sal" },
+	{ R_OP_TYPE_SAR, "sar" },
+	{ R_OP_TYPE_SHL, "shl" },
+	{ R_OP_TYPE_SHR, "shr" },
+	{ R_OP_TYPE_STORE, "store" },
+	{ R_OP_TYPE_SUB, "sub" },
+	{ R_OP_TYPE_SWI, "swi" },
+	{ R_OP_TYPE_CSWI, "cswi" },
+	{ R_OP_TYPE_SWITCH, "switch" },
+	{ R_OP_TYPE_TRAP, "trap" },
+	{ R_OP_TYPE_UCALL, "ucall" },
+	{ R_OP_TYPE_RCALL, "rcall" },
+	{ R_OP_TYPE_ICALL, "icall" },
+	{ R_OP_TYPE_IRCALL, "ircall" },
+	{ R_OP_TYPE_UCCALL, "uccall" },
+	{ R_OP_TYPE_UCJMP, "ucjmp" },
+	{ R_OP_TYPE_MCJMP, "mcjmp" },
+	{ R_OP_TYPE_RCJMP, "rcjmp" },
+	{ R_OP_TYPE_UJMP, "ujmp" },
+	{ R_OP_TYPE_RJMP, "rjmp" },
+	{ R_OP_TYPE_IJMP, "ijmp" },
+	{ R_OP_TYPE_IRJMP, "irjmp" },
+	{ R_OP_TYPE_UNK, "unk" },
+	{ R_OP_TYPE_UPUSH, "upush" },
+	{ R_OP_TYPE_RPUSH, "rpush" },
+	{ R_OP_TYPE_XCHG, "xchg" },
+	{ R_OP_TYPE_XOR, "xor" },
+	{ R_OP_TYPE_CASE, "case" },
+	{ R_OP_TYPE_CPL, "cpl" },
+	{ R_OP_TYPE_CRYPTO, "crypto" },
+	{ R_OP_TYPE_LENGTH, "lenght" },
+	{ R_OP_TYPE_ABS, "abs" },
+};
+
+func opTypeToString(opType uint32)string {
+
+}
 func checkOpDetail(insn *cs.Instruction) *OpDetail {
 
 	// var result = false
