@@ -60,5 +60,8 @@ func UnmarshalFunctions(path string) ([]FuncModel, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(list) == 0 {
+		return nil, errors.New("not func need to be defla")
+	}
 	return list, nil
 }
