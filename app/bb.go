@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	cs "github.com/er1cw00/btx.go/asm/cs"
 )
 
@@ -19,19 +20,19 @@ const BB_INVALID uint64 = 0
 
 type BBGraph struct {
 	name   string
-	start  uint64
+	base   uint64
 	size   uint64
 	insn   []*cs.Instruction
 	rootBB uint64
-	listBB []uint64
 	mapBB  map[uint64]*BB
+	listBB []uint64
 }
 
-func NewBBG(name string, start, size uint64, insn []*cs.Instruction) *BBGraph {
+func NewBBG(name string, base, size uint64, insn []*cs.Instruction) *BBGraph {
 	bbg := &BBGraph{
 		name:   name,
-		start:  start,
-		end:    end,
+		base:   base,
+		size:   size,
 		insn:   insn,
 		rootBB: BB_INVALID,
 		mapBB:  make(map[uint64]*BB),
@@ -40,25 +41,6 @@ func NewBBG(name string, start, size uint64, insn []*cs.Instruction) *BBGraph {
 	return bbg
 }
 
-func (g *BBGraph) FindBB(start uint64) *BB {
-	if bb, found := g.mapBB[start]; found {
-		return bb
-	}
-	return nil
-}
-func (g *BBGraph) InsertBB(bb *BB) error {
-	if _, found := g.mapBB[bb.start]; found {
-		return ErrorExistBB
-	}
-
-	for i := 1; i < len(g.listBB); i++ {
-		prevBB := g.listBB[i-1]
-		currBB := g.listBB[i]
-		if prevBB.start == bb.Start {
-
-		}
-	}
-}
 func NewBB(start, size uint64) *BB {
 	bb := &BB{
 		Start: start,
@@ -68,7 +50,6 @@ func NewBB(start, size uint64) *BB {
 		Left:  BB_INVALID,
 		Right: BB_INVALID,
 	}
-	g.mapBB[start] = bb
 
-	return nil
+	return bb
 }

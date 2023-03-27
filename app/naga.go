@@ -82,21 +82,23 @@ func (naga *NagaLoader) Run(rootfsPath, xloaderPath string, funcs []FuncModel) e
 	}
 	fn := funcs[12]
 
-	_ = ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End-fn.Start)
+	_ = ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.End-fn.Start, fn.Start)
 	return nil
 }
 
-func ParseFunction(capstone *cs.Capstone, name string, p, offset, size uint64) error {
+func ParseFunction(capstone *cs.Capstone, name string, start, size, base uint64) error {
 
-	insn, err := capstone.Disassemble(uintptr(p), int(size), offset)
+	insn, err := capstone.Disassemble(uintptr(start), int(size), base)
 	if err != nil {
 		panic(err)
 	}
-	g := NewBBG(name, start, size, insn)
-	g.NewBB(start, 0)
+	//g := NewBBG(name, base, size, insn)
 	for i := 0; i < len(insn); i += 1 {
 		logger.Debugf("    %d:  0x%x  %s %s", i, insn[i].GetAddr(), insn[i].GetMnemonic(), insn[i].GetOptStr())
-
+		d := checkOpDetail(insn[i])
+		if d != nil {
+			logger.Debugf("         0x%x, 0x%x 0x%x", d.OpType, d.Jump, d.Next)
+		}
 	}
 	return nil
 }
