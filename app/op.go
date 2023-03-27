@@ -1,10 +1,9 @@
 package app
 
 import (
-	"fmt"
+	//"fmt"
 
 	cs "github.com/er1cw00/btx.go/asm/cs"
-	arm64 "github.com/er1cw00/btx.go/asm/cs/arm64"
 )
 
 /* * *
@@ -120,25 +119,109 @@ const (
 	R_OP_TYPE_SYNC   uint32 = 47
 )
 
-func checkOpType(insn *cs.Instruction) uint32 {
+type OpDetail struct {
+	OpType uint32
+	Jump   uint64
+	Next   uint64
+}
+
+func checkOpDetail(insn *cs.Instruction) *OpDetail {
+
+	// var result = false
+	var opType uint32 = R_OP_TYPE_NULL
+	var jump uint64 = 0
+	var next uint64 = 0
 
 	id := insn.GetId()
-	opInfo := insn.GetOpInfo().(*arm64.OpInfo)
+	addr := insn.GetAddr()
+	detail := insn.GetDetail().(*cs.Arm64Detail)
 	switch id {
+	case cs.ARM64_INS_CSEL:
+	case cs.ARM64_INS_FCSEL:
+	case cs.ARM64_INS_CSET:
+	case cs.ARM64_INS_CINC:
+		opType = R_OP_TYPE_CMOV
+	case cs.ARM64_INS_FCMP:
+	case cs.ARM64_INS_CCMP:
+	case cs.ARM64_INS_CCMN:
+	case cs.ARM64_INS_CMP:
+	case cs.ARM64_INS_CMN:
+	case cs.ARM64_INS_TST:
+		opType = R_OP_TYPE_CMP
+	case cs.ARM64_INS_RETAA:
+	case cs.ARM64_INS_RETAB:
+	case cs.ARM64_INS_ERETAA:
+	case cs.ARM64_INS_ERETAB:
+		opType = R_OP_TYPE_RET
+	case cs.ARM64_INS_ERET:
+		opType = R_OP_TYPE_RET
+	case cs.ARM64_INS_RET:
+		opType = R_OP_TYPE_RET
+	case cs.ARM64_INS_BL:
+		opType = R_OP_TYPE_CALL
+		jump = uint64(detail.Operands[0].Value.Imm)
+		next = addr + 4
+	case cs.ARM64_INS_BLR:
+		opType = R_OP_TYPE_RCALL
+		next = addr + 4
 	case cs.ARM64_INS_CBZ:
 	case cs.ARM64_INS_CBNZ:
-		return R_OP_TYPE_CJMP
+		opType = R_OP_TYPE_CJMP
+		jump = uint64(detail.Operands[1].Value.Imm)
+		next = addr + 4
 	case cs.ARM64_INS_TBZ:
 	case cs.ARM64_INS_TBNZ:
-		return R_OP_TYPE_CJMP
+		opType = R_OP_TYPE_CJMP
+		jump = uint64(detail.Operands[1].Value.Imm)
+		next = addr + 4
 	case cs.ARM64_INS_BR:
-		return R_OP_TYPE_RJMP
+		opType = R_OP_TYPE_RJMP
 	case cs.ARM64_INS_B:
-		if opInfo.OpList[0].reg == ARM64_REG_LR {
-			return R_OP_TYPE_RET
+		if detail.Operands[0].Value.Reg == cs.ARM64_REG_LR {
+			opType = R_OP_TYPE_RET
+		} else if detail.CC != cs.ARM64_CC_INVALID {
+			jump = uint64(detail.Operands[0].Value.Imm)
+			opType = R_OP_TYPE_CJMP
+		} else {
+			jump = uint64(detail.Operands[0].Value.Imm)
+			opType = R_OP_TYPE_JMP
 		}
-		if opInfo.cc {
-
+	case cs.ARM64_INS_LDUR:
+	case cs.ARM64_INS_LDURB:
+	case cs.ARM64_INS_LDRSW:
+	case cs.ARM64_INS_LDRSB:
+	case cs.ARM64_INS_LDRSH:
+	case cs.ARM64_INS_LDR:
+	case cs.ARM64_INS_LDURSW:
+	case cs.ARM64_INS_LDP:
+	case cs.ARM64_INS_LDNP:
+	case cs.ARM64_INS_LDPSW:
+	case cs.ARM64_INS_LDRH:
+	case cs.ARM64_INS_LDRB:
+		reg0 := detail.Operands[0].Value.Reg
+		if reg0 == cs.ARM_REG_PC {
+			opType = R_OP_TYPE_MJMP
+			if detail.CC != cs.ARM64_CC_AL {
+				opType = R_OP_TYPE_MCJMP
+			}
+		}
+	case cs.ARM64_INS_BLRAA:
+	case cs.ARM64_INS_BLRAAZ:
+	case cs.ARM64_INS_BLRAB:
+	case cs.ARM64_INS_BLRABZ:
+		opType = R_OP_TYPE_RCALL
+	case cs.ARM64_INS_BRAA:
+	case cs.ARM64_INS_BRAAZ:
+	case cs.ARM64_INS_BRAB:
+	case cs.ARM64_INS_BRABZ:
+		opType = R_OP_TYPE_RJMP
+	}
+	if opType != R_OP_TYPE_NULL {
+		return &OpDetail{
+			OpType: opType,
+			Jump:   jump,
+			Next:   next,
 		}
 	}
+	return nil
 }
