@@ -1,10 +1,11 @@
 package app
 
 import (
-	"github.com/er1cw00/btx.go/base/logger"
+	//	"unsafe"
 
 	cs "github.com/er1cw00/btx.go/asm/cs"
 	ks "github.com/er1cw00/btx.go/asm/ks"
+	logger "github.com/er1cw00/btx.go/base/logger"
 	emu "github.com/er1cw00/btx.go/emu"
 	android "github.com/er1cw00/btx.go/emu/android"
 	//egn "github.com/er1cw00/btx.go/engine"
@@ -61,39 +62,59 @@ func (naga *NagaLoader) Close() {
 	}
 }
 
-func (naga *NagaLoader) Run(rootfsPath, xloaderPath, funcPath string) {
+func (naga *NagaLoader) Run(rootfsPath, xloaderPath string, funcs []FuncModel) error {
 	var m emu.Module = nil
 	var err error = nil
-	var funcs []FuncModel = nil
-	if funcs, err = UnmarshalFunctions(funcPath); err != nil {
-		logger.Errorf("load defla func list fail, error: %v", err)
-		return
-	}
-	if len(funcs) == 0 {
-		logger.Errorf("not func need to be defla")
-		return
-	}
-	for i, fn := range funcs {
-		logger.Debugf("  func(%d), name(%s), start(0x%0x), end(0x%x)", i, fn.Name, fn.Start, fn.End)
-	}
+
 	fs := naga.emulator.GetFileSystem()
 	fs.SetRootfsPath(rootfsPath)
 	loader := naga.emulator.GetLoader()
-
+	loader.SetInitFuncFilter(func(loader emu.Loader, module emu.Module) bool {
+		return false
+	})
 	if m, err = loader.LoadLibrary(xloaderPath); err != nil {
 		logger.Errorf("load naga's xloader.so fail, error: %v", err)
-		return
+		return err
 	}
 	logger.Debugf("load xloader.so at 0x%x", m.GetMapBase())
-	return
+	for i, fn := range funcs {
+		logger.Debugf("  func(%d), name(%s), start(0x%0x), end(0x%x)", i, fn.Name, fn.Start, fn.End)
+	}
+	fn := funcs[12]
+
+	_ = ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End-fn.Start)
+	return nil
+}
+
+func ParseFunction(capstone *cs.Capstone, name string, p, offset, size uint64) error {
+
+	insn, err := capstone.Disassemble(uintptr(p), int(size), offset)
+	if err != nil {
+		panic(err)
+	}
+	g := NewBBG(name, start, size, insn)
+	g.NewBB(start, 0)
+	for i := 0; i < len(insn); i += 1 {
+		logger.Debugf("    %d:  0x%x  %s %s", i, insn[i].GetAddr(), insn[i].GetMnemonic(), insn[i].GetOptStr())
+
+	}
+	return nil
 }
 
 func Run(rootfsPath, xloaderPath, funcPath string) error {
-	naga, err := NewNagaLoader()
-	if err != nil {
-		return nil
+	var err error = nil
+	var naga *NagaLoader = nil
+	var funcs []FuncModel = nil
+	if funcs, err = UnmarshalFunctions(funcPath); err != nil {
+		logger.Errorf("load defla func list fail, error: %v", err)
+		return err
 	}
-	naga.Run(rootfsPath, xloaderPath, funcPath)
+
+	if naga, err = NewNagaLoader(); err != nil {
+		return err
+	}
+	naga.Run(rootfsPath, xloaderPath, funcs)
+
 	naga.Close()
 	return nil
 }
