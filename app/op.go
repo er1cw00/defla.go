@@ -119,12 +119,6 @@ const (
 	R_OP_TYPE_SYNC   uint32 = 47
 )
 
-type OpDetail struct {
-	OpType uint32
-	Jump   uint64
-	Next   uint64
-}
-
 type OpTypeLabel struct {
 	opType uint32
 	opName string
@@ -207,7 +201,14 @@ func opTypeToString(opType uint32) string {
 	}
 	return "undefined"
 }
-func checkOpDetail(insn *cs.Instruction) *OpDetail {
+
+type OpExtDetail struct {
+	OpType uint32
+	Jump   uint64
+	Next   uint64
+}
+
+func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 
 	// var result = false
 	var opType uint32 = R_OP_TYPE_NULL
@@ -299,7 +300,7 @@ func checkOpDetail(insn *cs.Instruction) *OpDetail {
 		opType = R_OP_TYPE_RJMP
 	}
 	if opType != R_OP_TYPE_NULL {
-		return &OpDetail{
+		return &OpExtDetail{
 			OpType: opType,
 			Jump:   jump,
 			Next:   next,
