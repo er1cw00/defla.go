@@ -255,7 +255,7 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 	case cs.ARM64_INS_TBZ:
 	case cs.ARM64_INS_TBNZ:
 		opType = R_OP_TYPE_CJMP
-		jump = uint64(detail.Operands[1].Value.Imm)
+		jump = uint64(detail.Operands[2].Value.Imm)
 		next = addr + 4
 	case cs.ARM64_INS_BR:
 		opType = R_OP_TYPE_RJMP
