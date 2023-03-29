@@ -93,19 +93,34 @@ func ParseFunction(capstone *cs.Capstone, name string, start, size, base uint64)
 		panic(err)
 	}
 	//g := NewBBG(name, base, size, insn)
+	//addrList = append(addrList, base)
+	s := base
 	for i := 0; i < len(insn); i += 1 {
+		offset := insn[i].GetAddr() - base
 		logger.Debugf("    %d:  0x%x  %s %s, jump:%v, call:%v, ret:%v,br:%v",
 			i,
-			insn[i].GetAddr(),
+			offset,
 			insn[i].GetMnemonic(),
 			insn[i].GetOptStr(),
 			insn[i].CheckGroup(cs.CS_GRP_JUMP),
 			insn[i].CheckGroup(cs.CS_GRP_CALL),
 			insn[i].CheckGroup(cs.CS_GRP_RET),
 			insn[i].CheckGroup(cs.CS_GRP_BRANCH_RELATIVE))
-		d := checkOpDetail(insn[i])
-		if d != nil {
-			logger.Debugf("         0x%x, 0x%x 0x%x", d.OpType, d.Jump, d.Next)
+		if insn[i].CheckGroup(cs.CS_GRP_JUMP) {
+			if ext := checkOpExtDetail(insn[i]); ext != nil {
+				if ext.OpType == R_OP_TYPE_RET ||
+					ext.OpType == R_OP_TYPE_JMP ||
+					ext.OpType == R_OP_TYPE_CJMP ||
+					ext.OpType == R_OP_TYPE_RJMP ||
+					ext.OpType == R_OP_TYPE_MCJMP {
+					logger.Debugf("         Type:%s, block[0x%x - 0x%x], jump:0x%x, next:0x%x",
+						opTypeToString(ext.OpType),
+						s, offset,
+						ext.Jump, ext.Next)
+				}
+
+			}
+
 		}
 	}
 	return nil
