@@ -9,7 +9,7 @@ var ErrorExistBB = errors.New("BB is exist")
 
 type BB struct {
 	Start uint64
-	Size  uint64
+	End   uint64
 	Insn  []*cs.Instruction
 	Next  uint64
 	Left  uint64
@@ -41,10 +41,10 @@ func NewBBG(name string, base, size uint64, insn []*cs.Instruction) *BBGraph {
 	return bbg
 }
 
-func NewBB(start, size uint64) *BB {
+func NewBB(start, end uint64) *BB {
 	bb := &BB{
 		Start: start,
-		Size:  0,
+		End:   end,
 		Insn:  nil,
 		Next:  BB_INVALID,
 		Left:  BB_INVALID,
