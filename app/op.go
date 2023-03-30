@@ -205,7 +205,7 @@ func opTypeToString(opType uint32) string {
 type OpExtDetail struct {
 	OpType uint32
 	Jump   uint64
-	Next   uint64
+	Fail   uint64
 }
 
 func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
@@ -213,7 +213,7 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 	// var result = false
 	var opType uint32 = R_OP_TYPE_NULL
 	var jump uint64 = 0
-	var next uint64 = 0
+	var fail uint64 = 0
 
 	id := insn.GetId()
 	addr := insn.GetAddr()
@@ -243,20 +243,20 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 	case cs.ARM64_INS_BL:
 		opType = R_OP_TYPE_CALL
 		jump = uint64(detail.Operands[0].Value.Imm)
-		next = addr + 4
+		fail = addr + 4
 	case cs.ARM64_INS_BLR:
 		opType = R_OP_TYPE_RCALL
-		next = addr + 4
+		fail = addr + 4
 	case cs.ARM64_INS_CBZ:
 	case cs.ARM64_INS_CBNZ:
 		opType = R_OP_TYPE_CJMP
 		jump = uint64(detail.Operands[1].Value.Imm)
-		next = addr + 4
+		fail = addr + 4
 	case cs.ARM64_INS_TBZ:
 	case cs.ARM64_INS_TBNZ:
 		opType = R_OP_TYPE_CJMP
 		jump = uint64(detail.Operands[2].Value.Imm)
-		next = addr + 4
+		fail = addr + 4
 	case cs.ARM64_INS_BR:
 		opType = R_OP_TYPE_RJMP
 	case cs.ARM64_INS_B:
@@ -264,6 +264,7 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 			opType = R_OP_TYPE_RET
 		} else if detail.CC != cs.ARM64_CC_INVALID {
 			jump = uint64(detail.Operands[0].Value.Imm)
+			fail = addr + 4
 			opType = R_OP_TYPE_CJMP
 		} else {
 			jump = uint64(detail.Operands[0].Value.Imm)
@@ -303,7 +304,7 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 		return &OpExtDetail{
 			OpType: opType,
 			Jump:   jump,
-			Next:   next,
+			Fail:   fail,
 		}
 	}
 	return nil
