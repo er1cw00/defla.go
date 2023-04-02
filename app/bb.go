@@ -11,6 +11,7 @@ type BB struct {
 	Start uint64
 	End   uint64
 	Insn  []*cs.Instruction
+	Cond  uint32
 	Next  uint64
 	Left  uint64
 	Right uint64
@@ -46,6 +47,7 @@ func NewBB(start, end uint64) *BB {
 		Start: start,
 		End:   end,
 		Insn:  nil,
+		Cond:  R_COND_INV,
 		Next:  BB_INVALID,
 		Left:  BB_INVALID,
 		Right: BB_INVALID,
