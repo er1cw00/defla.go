@@ -1,0 +1,21 @@
+.boxLayout {
+    height: 100vh;
+    display: flex;
+
+}
+
+.leftLayout {
+    width: 200px;
+    background: #000;
+
+    height: 100%;
+    color:#fff;
+    flex-shrink: 0;
+}   
+
+.rightLayout {
+    width: calc(~"100% - 200px");
+    background: #fff;
+    height: 100%;
+    flex:1
+}
