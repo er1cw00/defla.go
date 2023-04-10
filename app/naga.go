@@ -3,12 +3,14 @@ package app
 import (
 	//	"unsafe"
 
+	"fmt"
+
 	cs "github.com/er1cw00/btx.go/asm/cs"
 	ks "github.com/er1cw00/btx.go/asm/ks"
 	logger "github.com/er1cw00/btx.go/base/logger"
 	emu "github.com/er1cw00/btx.go/emu"
 	android "github.com/er1cw00/btx.go/emu/android"
-	defla "github.com/er1cw00/defla.go/defla"
+	"github.com/er1cw00/defla.go/defla"
 	//egn "github.com/er1cw00/btx.go/engine"
 )
 
@@ -83,7 +85,12 @@ func (naga *NagaLoader) Run(rootfsPath, xloaderPath string, funcs []FuncModel) e
 	}
 	fn := funcs[12]
 
-	_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
+	bbList, err := defla.NewBBList(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
+	if err != nil {
+		logger.Fatalf("parse function to basic block fail, err: %v", err)
+	}
+	fmt.Printf("%s\n", bbList.Draw())
+	//_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
 	return nil
 }
 

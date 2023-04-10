@@ -2,6 +2,8 @@ package defla
 
 import (
 	"errors"
+	"fmt"
+
 	dot "github.com/emicklei/dot"
 	cs "github.com/er1cw00/btx.go/asm/cs"
 	logger "github.com/er1cw00/btx.go/base/logger"
@@ -10,63 +12,60 @@ import (
 
 var ErrorExistBB = errors.New("BB is exist")
 
+const BB_INVALID uint64 = 0
+
 type BB struct {
-	Node  dot.Node
 	Start uint64
 	End   uint64
-	Insn  []*cs.Instruction
 	Cond  uint32
 	Next  uint64
 	Left  uint64
 	Right uint64
 }
 
-const BB_INVALID uint64 = 0
-
-type BBGraph struct {
-	name   string
-	base   uint64
-	size   uint64
-	insn   []*cs.Instruction
-	rootBB uint64
-	mapBB  map[uint64]*BB
-	listBB []uint64
-}
-
-func NewBBG(name string, base, size uint64, insn []*cs.Instruction) *BBGraph {
-	bbg := &BBGraph{
-		name:   name,
-		base:   base,
-		size:   size,
-		insn:   insn,
-		rootBB: BB_INVALID,
-		mapBB:  make(map[uint64]*BB),
-		listBB: make([]uint64, 0),
-	}
-	return bbg
-}
-
-func NewBB(start, end uint64) *BB {
+func newBB(start, end uint64) *BB {
 	bb := &BB{
 		Start: start,
 		End:   end,
-		Insn:  nil,
 		Cond:  R_COND_INV,
 		Next:  BB_INVALID,
 		Left:  BB_INVALID,
 		Right: BB_INVALID,
 	}
-
 	return bb
 }
 
-func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) error {
+type BBList struct {
+	name     string
+	base     uint64
+	size     int
+	capstone *cs.Capstone
+	insn     []*cs.Instruction
+	list     *skiplist.SkipList
+}
 
-	insn, err := capstone.Disassemble(uintptr(code), int(end-start+4), start)
+func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BBList, error) {
+	size := int(end - start + 4)
+	insn, err := capstone.Disassemble(uintptr(code), size, start)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	//g := NewBBG(name, base, size, insn)
+	skipList, err := parseFunction(insn, name, start, end)
+	if err != nil {
+		return nil, err
+	}
+	bblist := &BBList{
+		capstone: capstone,
+		name:     name,
+		base:     start,
+		size:     size,
+		insn:     insn,
+		list:     skipList,
+	}
+	return bblist, nil
+}
+
+func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*skiplist.SkipList, error) {
 
 	bbList := skiplist.New(skiplist.Uint64Asc)
 	jumpMap := make(map[uint64]bool, 0)
@@ -101,7 +100,7 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 						ext.Jump, ext.Fail)
 
 					next := addr + 4
-					bb := NewBB(s, addr)
+					bb := newBB(s, addr)
 					bb.Cond = ext.OpCond
 					if ext.OpCond == R_COND_INV {
 						bb.Next = ext.Jump
@@ -134,7 +133,7 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 				prevBB := prev.Value.(*BB)
 				prevBB.Next = k
 				prevBB.Cond = R_COND_INV
-				bb := NewBB(k, end)
+				bb := newBB(k, end)
 				bbList.Set(k, bb)
 				logger.Debugf("          elem is empty, new BB: [0x%0x - 0x%x]", bb.Start, bb.End)
 				continue
@@ -145,7 +144,7 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 					continue
 				}
 				prevBB := prev.Value.(*BB)
-				bb := NewBB(k, prevBB.End)
+				bb := newBB(k, prevBB.End)
 				bb.Cond = prevBB.Cond
 				bb.Next = prevBB.Next
 				bb.Left = prevBB.Left
@@ -157,11 +156,19 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 				prevBB.End = k - 4
 				bbList.Set(k, bb)
 				logger.Debugf("          match BB: [0x%0x - 0x%x], new BB: [0x%0x - 0x%x]", prevBB.Start, prevBB.End, bb.Start, bb.End)
-
 			}
 		}
 	}
 
+	//trunDotToImage(ss, "svg", )
+	return bbList, nil
+}
+func createNode(g *dot.Graph, bb *BB) dot.Node {
+	label := fmt.Sprintf("0x%x", bb.Start)
+	return g.Node(label)
+}
+
+func (bbList *BBList) Draw() string {
 	g := dot.NewGraph(dot.Directed)
 	g.NodeInitializer(func(n dot.Node) {
 		n.Attr("shape", "box")
@@ -174,15 +181,14 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 		e.Attr("style", "invis")
 	})
 
-	var prevBB *BB = nil
-	for elem := bbList.Front(); elem != nil; elem = elem.Next() {
-
+	var prev *dot.Node = nil
+	for elem := bbList.list.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
-		bb.Node = CreateNode(g, bb)
-		if prevBB != nil {
-			g.Edge(prevBB.Node, bb.Node)
+		node := createNode(g, bb)
+		if prev != nil {
+			g.Edge(*prev, node)
 		}
-		prevBB = bb
+		prev = &node
 		logger.Debugf("BB =>  [0x%0x - 0x%x]  Cond:%s, Next:0x%x, Left:0x%x, Right:0x%x",
 			elem.Key().(uint64),
 			bb.End,
@@ -191,14 +197,34 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 			bb.Left,
 			bb.Right)
 	}
-	ss := g.String()
-	fmt.Println(ss)
-	//runDotToImage(ss, "svg", )
-	return nil
-}
-func CreateNode(g *dot.Graph, bb *BB) dot.Node {
-	label := fmt.Sprintf("0x%x", bb.Start)
-	node := g.Node(label)
-	return node
+	return g.String()
 }
 
+/*
+var dotExec = "/usr/local/bin/dot"
+
+func runDotToImage(outfname string, format string, t []byte) (string, error) {
+	if dotExec == "" {
+		dot, err := exec.LookPath("dot")
+		if err != nil {
+			logger.Fatalf("unable to find program 'dot', please install it or check your PATH\n")
+		}
+		dotExec = dot
+	}
+
+	var img string
+	if outfname == "" {
+		img = filepath.Join(os.TempDir(), fmt.Sprintf("go-callvis_export.%s", format))
+	} else {
+		img = fmt.Sprintf("%s.%s", outfname, format)
+	}
+	cmd := exec.Command(dotExec, fmt.Sprintf("-T%s", format), "-o", img)
+	cmd.Stdin = bytes.NewReader(dot)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("command '%v': %v\n%v", cmd, err, stderr.String())
+	}
+	return img, nil
+}
+*/
