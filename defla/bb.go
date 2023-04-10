@@ -2,6 +2,7 @@ package defla
 
 import (
 	"errors"
+	dot "github.com/emicklei/dot"
 	cs "github.com/er1cw00/btx.go/asm/cs"
 	logger "github.com/er1cw00/btx.go/base/logger"
 	skiplist "github.com/huandu/skiplist"
@@ -10,6 +11,7 @@ import (
 var ErrorExistBB = errors.New("BB is exist")
 
 type BB struct {
+	Node  dot.Node
 	Start uint64
 	End   uint64
 	Insn  []*cs.Instruction
@@ -160,8 +162,27 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 		}
 	}
 
+	g := dot.NewGraph(dot.Directed)
+	g.NodeInitializer(func(n dot.Node) {
+		n.Attr("shape", "box")
+		n.Attr("fontname", "arial")
+		n.Attr("style", "filled")
+		n.Attr("nojustify", "true")
+		n.Attr("outputorder", "edgesfirst")
+	})
+	g.EdgeInitializer(func(e dot.Edge) {
+		e.Attr("style", "invis")
+	})
+
+	var prevBB *BB = nil
 	for elem := bbList.Front(); elem != nil; elem = elem.Next() {
+
 		bb := elem.Value.(*BB)
+		bb.Node = CreateNode(g, bb)
+		if prevBB != nil {
+			g.Edge(prevBB.Node, bb.Node)
+		}
+		prevBB = bb
 		logger.Debugf("BB =>  [0x%0x - 0x%x]  Cond:%s, Next:0x%x, Left:0x%x, Right:0x%x",
 			elem.Key().(uint64),
 			bb.End,
@@ -170,5 +191,14 @@ func ParseFunction(capstone *cs.Capstone, name string, code, start, end uint64) 
 			bb.Left,
 			bb.Right)
 	}
+	ss := g.String()
+	fmt.Println(ss)
+	//runDotToImage(ss, "svg", )
 	return nil
 }
+func CreateNode(g *dot.Graph, bb *BB) dot.Node {
+	label := fmt.Sprintf("0x%x", bb.Start)
+	node := g.Node(label)
+	return node
+}
+
