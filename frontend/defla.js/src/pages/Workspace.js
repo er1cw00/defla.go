@@ -4,7 +4,6 @@ import { Col, Divider, Row } from 'antd';
 
 import Function from './components/Function';
 import BBList from './components/BBList';
-import BBInfo from './components/BBInfo';
 import styles from './pages.css'
 
 class Workspace extends React.Component {
@@ -12,12 +11,11 @@ class Workspace extends React.Component {
   render() {
     return (
     <div> 
-      <Row>
+      <Row style={{height:'100%'}}>
         <Col flex={2}>
           <Function />
         </Col>
         <Col flex={6}>
-          <BBInfo />
           <BBList />
         </Col>
       </Row>

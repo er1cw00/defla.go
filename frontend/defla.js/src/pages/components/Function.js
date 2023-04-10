@@ -1,7 +1,7 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { Form, List, Typography, Button, Input, Space } from 'antd';
-
+import { List, Button, Input } from 'antd';
+import VirtualList from 'rc-virtual-list';
 
 class FunctionInfo extends React.Component {
 
@@ -41,40 +41,62 @@ class FunctionInfo extends React.Component {
   }
 }
 
+const ContainerHeight = 800
 class Function extends React.Component {
-
   constructor(props) {
     super(props);
-    this.data = 
-            [
-              "func_1", 
-              "func_2", 
-              "func_3", 
-              "func_4", 
-              "func_5", 
-              "func_6", 
-              "func_7", 
-              "func_8", 
-              "func_9", 
-              "func_10"
-            ]
-    
+    this.state = {
+      data: [
+        {name: "func_1", start:"0x111", end:"0x222"},
+        {name: "func_2", start:"0x111", end:"0x222"},
+        {name: "func_3", start:"0x111", end:"0x222"},
+        {name: "func_4", start:"0x111", end:"0x222"},
+        {name: "func_5", start:"0x111", end:"0x222"},
+        {name: "func_6", start:"0x111", end:"0x222"},
+        {name: "func_7", start:"0x111", end:"0x222"},
+        {name: "func_8", start:"0x111", end:"0x222"},
+        {name: "func_9", start:"0x111", end:"0x222"},
+        {name: "func_10", start:"0x111", end:"0x222"},
+        {name: "func_1", start:"0x111", end:"0x222"},
+        {name: "func_2", start:"0x111", end:"0x222"},
+        {name: "func_3", start:"0x111", end:"0x222"},
+        {name: "func_4", start:"0x111", end:"0x222"},
+        {name: "func_5", start:"0x111", end:"0x222"},
+        {name: "func_6", start:"0x111", end:"0x222"},
+        {name: "func_7", start:"0x111", end:"0x222"},
+        {name: "func_8", start:"0x111", end:"0x222"},
+        {name: "func_9", start:"0x111", end:"0x222"},
+      ]
+    }
+    this.appendData = this.appendData.bind(this);
+    this.onScroll = this.onScroll.bind(this)
   }
+  appendData() {
 
+  }
+  onScroll(e) {
+    if (e.currentTarget.scrollHeight - e.currentTarget.scrollTop === ContainerHeight) {
+      this.appendData();
+    }
+  };
   render() {
     return (
-        <List style={{width:'300px'}}
-          header={<FunctionInfo />}
-          bordered
-          dataSource={this.data}
-          renderItem={(item) => (
-            <List.Item>
-              {item}
+      <List  header={<FunctionInfo />}>
+        <VirtualList
+          data={this.state.data}
+          height={ContainerHeight}
+          itemHeight={32}
+          itemKey="name"
+          onScroll={this.onScroll}
+        >
+          {(item) => (
+            <List.Item key={item.name}>
+              {item.name}
             </List.Item>
           )}
-        />
-
-    );
+        </VirtualList>
+      </List>
+    )
   }
 }
 export default Function;
