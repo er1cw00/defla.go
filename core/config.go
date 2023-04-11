@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	utils "github.com/er1cw00/btx.go/base/utils"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type DeflaConfig struct {
