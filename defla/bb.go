@@ -179,13 +179,28 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 	//trunDotToImage(ss, "svg", )
 	return bbList, nil
 }
-func createNode(g *dot.Graph, bb *BB) dot.Node {
+
+func createDotNode(g *dot.Graph, bb *BB) dot.Node {
 	label := fmt.Sprintf("0x%x", bb.Start)
 	return g.Node(label)
 }
 
+func insnToString(insn []*cs.Instruction) string {
+	var sb strings.Builder
+	sb.WriteString("[")
+	for i, ins := range insn {
+		//code := ins.GetBytes()
+		fmt.Fprintf(&sb, "\"0x%x %s %s\"", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
+		if i < len(insn)-1 {
+			sb.WriteString(",\n")
+		}
+	}
+	sb.WriteString("]")
+	return sb.String()
+}
 func (bbList *BBList) Draw() string {
 	g := dot.NewGraph(dot.Directed)
+	g.AttributesMap.Attr("bgcolor", "transparent")
 	g.NodeInitializer(func(n dot.Node) {
 		n.Attr("shape", "box")
 		n.Attr("fontname", "arial")
@@ -194,13 +209,13 @@ func (bbList *BBList) Draw() string {
 		n.Attr("outputorder", "edgesfirst")
 	})
 	g.EdgeInitializer(func(e dot.Edge) {
-		e.Attr("style", "invis")
+
 	})
 
 	var prev *dot.Node = nil
 	for elem := bbList.list.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
-		node := createNode(g, bb)
+		node := createDotNode(g, bb)
 		if prev != nil {
 			g.Edge(*prev, node)
 		}
@@ -216,7 +231,7 @@ func (bbList *BBList) Draw() string {
 	return g.String()
 }
 
-func (bblist *BBList) GetInstruction(start, end uint64) []*cs.Instruction {
+func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
 	//	size := int(end - start + 4)
 	insn := make([]*cs.Instruction, 0)
 	for off := start; off <= end; off += 4 {
@@ -227,33 +242,22 @@ func (bblist *BBList) GetInstruction(start, end uint64) []*cs.Instruction {
 	return insn
 }
 
-func insnToString(insn []*cs.Instruction) string {
-	var sb strings.Builder
-	sb.WriteString("[")
-	for i, ins := range insn {
-		//code := ins.GetBytes()
-		fmt.Fprintf(&sb, "'0x%x %s %s'", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
-		if i < len(insn)-1 {
-			sb.WriteString(",\n")
-		}
-	}
-	sb.WriteString("]")
-	return sb.String()
-}
 func (bblist *BBList) String() string {
 	var sb strings.Builder
+	sb.WriteString("[\n")
 	for elem := bblist.list.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
-		insn := insnToString(bblist.GetInstruction(bb.Start, bb.End))
-		fmt.Fprintf(&sb, "{'type': '%s', 'offset':'0x%x', 'insn': %s}",
+		insn := insnToString(bblist.GetInstructions(bb.Start, bb.End))
+		fmt.Fprintf(&sb, "{\"type\": \"%s\", \"offset\": \"0x%x\", \"insn\": %s}",
 			bbTypeLabel(bb.Type),
 			bb.Start,
-			insn,
-		)
+			insn)
+
 		if elem != bblist.list.Back() {
 			sb.WriteString(",\n")
 		}
 	}
+	sb.WriteString("]\n")
 	return sb.String()
 }
 
