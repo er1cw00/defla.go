@@ -10,6 +10,7 @@ import (
 	egn "github.com/er1cw00/btx.go/engine"
 
 	app "github.com/er1cw00/defla.go/app"
+	"github.com/er1cw00/defla.go/core"
 	defla "github.com/er1cw00/defla.go/core/defla"
 )
 
@@ -34,7 +35,7 @@ func init() {
 	flag.Usage = usage
 }
 
-func Example(rootfsPath, modulePath, funcPath string) error {
+func Example(modulePath, funcPath string) error {
 	var err error = nil
 	var session *app.Session = nil
 	var funcs []app.FuncModel = nil
@@ -76,12 +77,16 @@ func main() {
 		usage()
 		os.Exit(0)
 	}
+	core.Config = &core.DeflaConfig{
+		RootfsPath: rootfsPath,
+	}
 	if err := base.Start(); err != nil {
 		panic(err)
 	}
+
 	egn.Init()
 
-	Example(rootfsPath, modulePath, funcPath)
+	Example(modulePath, funcPath)
 
 	egn.Close()
 	base.Stop()

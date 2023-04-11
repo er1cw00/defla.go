@@ -76,7 +76,7 @@ func (session *Session) Close() {
 }
 
 func md5Sum(libPath string) (string, error) {
-	f, err := os.Open("file.txt")
+	f, err := os.Open(libPath)
 	if err != nil {
 		return "", err
 	}
