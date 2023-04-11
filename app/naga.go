@@ -89,7 +89,7 @@ func (naga *NagaLoader) Run(rootfsPath, xloaderPath string, funcs []FuncModel) e
 	if err != nil {
 		logger.Fatalf("parse function to basic block fail, err: %v", err)
 	}
-	fmt.Printf("%s\n", bbList.Draw())
+	fmt.Printf("%s\n", bbList.String())
 	//_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
 	return nil
 }

@@ -3,6 +3,7 @@ package defla
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	dot "github.com/emicklei/dot"
 	cs "github.com/er1cw00/btx.go/asm/cs"
@@ -13,8 +14,14 @@ import (
 var ErrorExistBB = errors.New("BB is exist")
 
 const BB_INVALID uint64 = 0
+const (
+	BB_TYPE_UNK  = 0
+	BB_TYPE_USED = 1
+	BB_TYPE_OBF  = 2
+)
 
 type BB struct {
+	Type  uint32
 	Start uint64
 	End   uint64
 	Cond  uint32
@@ -25,6 +32,7 @@ type BB struct {
 
 func newBB(start, end uint64) *BB {
 	bb := &BB{
+		Type:  BB_TYPE_UNK,
 		Start: start,
 		End:   end,
 		Cond:  R_COND_INV,
@@ -198,6 +206,42 @@ func (bbList *BBList) Draw() string {
 			bb.Right)
 	}
 	return g.String()
+}
+
+func (bblist *BBList) GetInstruction(start, end uint64) []*cs.Instruction {
+	size := int(end - start + 4)
+	insn := make([]*cs.Instruction, 0)
+	for off := start; off <= end; off += 4 {
+		insn = append(insn, bblist.insn[off-bblist.base])
+	}
+	return insn
+}
+
+func insnToString(insn []*cs.Instruction) string {
+	var sb strings.Builder
+	sb.WriteString("[")
+	for i, ins := range insn {
+		//code := ins.GetBytes()
+		fmt.Fprintf(sb, "'0x%x %s %s'", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
+		if i < len(insn)-1 {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString("[")
+	return sb.String()
+}
+func (bblist *BBList) String() string {
+	var sb strings.Builder
+	for elem := bbList.list.Front(); elem != nil; elem = elem.Next() {
+		bb := elem.Value.(*BB)
+		insn := insnToString(bblist.GetInstruction(bb.Start, bb.End))
+		fmt.Fprintf(sb, "{'type': '%s', 'offset':'0x%x', 'insn': %s}",
+			bb.Type,
+			bb.Start,
+			insn,
+		)
+		ss += sb
+	}
 }
 
 /*
