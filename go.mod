@@ -6,6 +6,8 @@ replace github.com/er1cw00/btx.go => ../btx.go
 
 require github.com/er1cw00/btx.go v0.0.0-00010101000000-000000000000
 
+require gopkg.in/yaml.v2 v2.4.0 // indirect
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/dot v1.4.2
