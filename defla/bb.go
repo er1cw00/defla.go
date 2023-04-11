@@ -42,6 +42,14 @@ func newBB(start, end uint64) *BB {
 	}
 	return bb
 }
+func bbTypeLabel(typ uint32) string {
+	if typ == BB_TYPE_USED {
+		return "used"
+	} else if typ == BB_TYPE_OBF {
+		return "obfuscated"
+	}
+	return "unknown"
+}
 
 type BBList struct {
 	name     string
@@ -209,10 +217,12 @@ func (bbList *BBList) Draw() string {
 }
 
 func (bblist *BBList) GetInstruction(start, end uint64) []*cs.Instruction {
-	size := int(end - start + 4)
+	//	size := int(end - start + 4)
 	insn := make([]*cs.Instruction, 0)
 	for off := start; off <= end; off += 4 {
-		insn = append(insn, bblist.insn[off-bblist.base])
+		idx := int(off-bblist.base) / 4
+		fmt.Printf("off: 0x%x; idx: %d\n", off, idx)
+		insn = append(insn, bblist.insn[idx])
 	}
 	return insn
 }
@@ -222,26 +232,29 @@ func insnToString(insn []*cs.Instruction) string {
 	sb.WriteString("[")
 	for i, ins := range insn {
 		//code := ins.GetBytes()
-		fmt.Fprintf(sb, "'0x%x %s %s'", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
+		fmt.Fprintf(&sb, "'0x%x %s %s'", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
 		if i < len(insn)-1 {
-			sb.WriteString(",")
+			sb.WriteString(",\n")
 		}
 	}
-	sb.WriteString("[")
+	sb.WriteString("]")
 	return sb.String()
 }
 func (bblist *BBList) String() string {
 	var sb strings.Builder
-	for elem := bbList.list.Front(); elem != nil; elem = elem.Next() {
+	for elem := bblist.list.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
 		insn := insnToString(bblist.GetInstruction(bb.Start, bb.End))
-		fmt.Fprintf(sb, "{'type': '%s', 'offset':'0x%x', 'insn': %s}",
-			bb.Type,
+		fmt.Fprintf(&sb, "{'type': '%s', 'offset':'0x%x', 'insn': %s}",
+			bbTypeLabel(bb.Type),
 			bb.Start,
 			insn,
 		)
-		ss += sb
+		if elem != bblist.list.Back() {
+			sb.WriteString(",\n")
+		}
 	}
+	return sb.String()
 }
 
 /*
