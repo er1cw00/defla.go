@@ -10,8 +10,8 @@ import (
 	egn "github.com/er1cw00/btx.go/engine"
 
 	app "github.com/er1cw00/defla.go/app"
-	"github.com/er1cw00/defla.go/core"
-	defla "github.com/er1cw00/defla.go/core/defla"
+	defla "github.com/er1cw00/defla.go/app/defla"
+	core "github.com/er1cw00/defla.go/core"
 )
 
 var rootfsPath string = ""
@@ -53,7 +53,7 @@ func Example(modulePath, funcPath string) error {
 		return err
 	}
 	m := session.Module
-	logger.Debugf("load %s at 0x%x", m.GetName(), m.GetMapBase())
+	logger.Debugf("load %s at 0x%x, %s", m.GetName(), m.GetMapBase(), session.Id)
 
 	for i, fn := range funcs {
 		logger.Debugf("func(%d), name(%s), start(0x%0x), end(0x%x)", i, fn.Name, fn.Start, fn.End)

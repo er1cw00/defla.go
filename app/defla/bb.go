@@ -88,17 +88,17 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 	var s uint64 = start
 	for i := 0; i < len(insn); i += 1 {
 		addr := insn[i].GetAddr()
-		detail := insn[i].GetDetail().(*cs.Arm64Detail)
-		logger.Debugf("    %d:  0x%x  %-4s %24s;      jump:%5v, call:%5v, ret:%5v, ir:%5v, cc:%03x",
-			i,
-			addr,
-			insn[i].GetMnemonic(),
-			insn[i].GetOptStr(),
-			insn[i].CheckGroup(cs.CS_GRP_JUMP),
-			insn[i].CheckGroup(cs.CS_GRP_CALL),
-			insn[i].CheckGroup(cs.CS_GRP_RET),
-			insn[i].CheckGroup(cs.CS_GRP_BRANCH_RELATIVE),
-			detail.CC)
+		//detail := insn[i].GetDetail().(*cs.Arm64Detail)
+		// logger.Debugf("    %d:  0x%x  %-4s %24s;      jump:%5v, call:%5v, ret:%5v, ir:%5v, cc:%03x",
+		// 	i,
+		// 	addr,
+		// 	insn[i].GetMnemonic(),
+		// 	insn[i].GetOptStr(),
+		// 	insn[i].CheckGroup(cs.CS_GRP_JUMP),
+		// 	insn[i].CheckGroup(cs.CS_GRP_CALL),
+		// 	insn[i].CheckGroup(cs.CS_GRP_RET),
+		// 	insn[i].CheckGroup(cs.CS_GRP_BRANCH_RELATIVE),
+		// 	detail.CC)
 
 		if (insn[i].CheckGroup(cs.CS_GRP_JUMP) || insn[i].CheckGroup(cs.CS_GRP_RET)) &&
 			!insn[i].CheckGroup(cs.CS_GRP_CALL) {
@@ -109,11 +109,11 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 					ext.OpType == R_OP_TYPE_RJMP ||
 					ext.OpType == R_OP_TYPE_MCJMP {
 
-					logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
-						opTypeToString(ext.OpType),
-						s, addr,
-						opCondToString(ext.OpCond),
-						ext.Jump, ext.Fail)
+					// logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
+					// 	opTypeToString(ext.OpType),
+					// 	s, addr,
+					// 	opCondToString(ext.OpCond),
+					// 	ext.Jump, ext.Fail)
 
 					next := addr + 4
 					bb := newBB(s, addr)
@@ -151,7 +151,7 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 				prevBB.Cond = R_COND_INV
 				bb := newBB(k, end)
 				bbList.Set(k, bb)
-				logger.Debugf("          elem is empty, new BB: [0x%0x - 0x%x]", bb.Start, bb.End)
+				//logger.Debugf("          elem is empty, new BB: [0x%0x - 0x%x]", bb.Start, bb.End)
 				continue
 			} else {
 				prev := e.Prev()
@@ -171,7 +171,7 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 				prevBB.Right = BB_INVALID
 				prevBB.End = k - 4
 				bbList.Set(k, bb)
-				logger.Debugf("          match BB: [0x%0x - 0x%x], new BB: [0x%0x - 0x%x]", prevBB.Start, prevBB.End, bb.Start, bb.End)
+				//logger.Debugf("          match BB: [0x%0x - 0x%x], new BB: [0x%0x - 0x%x]", prevBB.Start, prevBB.End, bb.Start, bb.End)
 			}
 		}
 	}
@@ -198,6 +198,7 @@ func insnToString(insn []*cs.Instruction) string {
 	sb.WriteString("]")
 	return sb.String()
 }
+
 func (bbList *BBList) Draw() string {
 	g := dot.NewGraph(dot.Directed)
 	g.AttributesMap.Attr("bgcolor", "transparent")
@@ -236,7 +237,6 @@ func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
 	insn := make([]*cs.Instruction, 0)
 	for off := start; off <= end; off += 4 {
 		idx := int(off-bblist.base) / 4
-		fmt.Printf("off: 0x%x; idx: %d\n", off, idx)
 		insn = append(insn, bblist.insn[idx])
 	}
 	return insn
