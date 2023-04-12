@@ -11,6 +11,10 @@ import (
 func apiCreateSession(ctx iris.Context) {
 	var err error = nil
 	var session *app.Session = nil
+	if err = app.CheckLimited(); err != nil {
+		response(ctx, StatusInternalError, fmt.Sprintf("create session fail, error: %v", err))
+		return
+	}
 	if session, err = app.NewSession(); err != nil {
 		response(ctx, StatusInternalError, fmt.Sprintf("create session fail, error: %v", err))
 		return
@@ -25,8 +29,6 @@ func apiCreateSession(ctx iris.Context) {
 		return
 	}
 	response(ctx, StatusOK, session.Id)
-	// ctx.StatusCode(iris.StatusOK)
-	// ctx.JSON(iris.Map{"status": StatusOK, "session": "d21fc99984f43e11b463eb2d5beadd34"})
 }
 
 func apiGetFuncList(ctx iris.Context) {
@@ -38,7 +40,11 @@ func apiParseFunc(ctx iris.Context) {
 	var err error = nil
 	var start uint64 = 0
 	var end uint64 = 0
-	session := ctx.Params().Get("session")
+	id := ctx.Params().Get("session")
+	if len(id) < 0 {
+		response(ctx, StatusBadRequest, "unknonw session id")
+		return
+	}
 	name := ctx.Params().Get("func")
 	if len(name) < 0 {
 		response(ctx, StatusBadRequest, "unknonw name")
@@ -56,7 +62,19 @@ func apiParseFunc(ctx iris.Context) {
 			return
 		}
 	}
-
 	logger.Debugf("apiParseFunc >> session: %s, name: %s, start: 0x%x, end: 0x%x", session, name, start, end)
+
+	var session *app.Session = nil
+	if session, err = app.Get(id); err != nil {
+		msg := fmt.Sprintf("session (%s) not found", id)
+		response(ctx, StatusInternalError, msg)
+		return
+	}
+	bbList, err := defla.NewBBList(session.Capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
+	if err != nil {
+		logger.Fatalf("parse function to basic block fail, err: %v", err)
+	}
+	fmt.Printf("%s\n", bbList.String())
+
 	response(ctx, StatusOK, "success")
 }

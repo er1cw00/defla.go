@@ -4,11 +4,20 @@ import (
 	"errors"
 )
 
+const MaxSession int = 5
+
 var sessions map[string]*Session = make(map[string]*Session)
 
 var ErrorSessionExist = errors.New("Session Exist")
 var ErrorSessionNotExist = errors.New("Session Not Exist")
+var ErrorSessionLimited = errors.New("Max Session Limited")
 
+func CheckLimited() error {
+	if len(sessions) >= MaxSession {
+		return ErrorSessionLimited
+	}
+	return nil
+}
 func Get(id string) (*Session, error) {
 	sess, found := sessions[id]
 	if found {
@@ -18,6 +27,7 @@ func Get(id string) (*Session, error) {
 }
 
 func Append(id string, session *Session) error {
+
 	_, found := sessions[id]
 	if found {
 		return ErrorSessionExist
