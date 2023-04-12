@@ -9,6 +9,7 @@ import (
 )
 
 type DeflaConfig struct {
+	HtmlPath   string `yaml:htmlPath`
 	Address    string `yaml:"address"`
 	LogPath    string `yaml:"logPath"`
 	LogLevel   string `yaml:"logLevel"`
