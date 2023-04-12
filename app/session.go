@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"os"
 
@@ -11,17 +12,24 @@ import (
 	emu "github.com/er1cw00/btx.go/emu"
 	android "github.com/er1cw00/btx.go/emu/android"
 
+	defla "github.com/er1cw00/defla.go/app/defla"
 	core "github.com/er1cw00/defla.go/core"
-	//defla "github.com/er1cw00/defla.go/core/defla"
 	//egn "github.com/er1cw00/btx.go/engine"
 )
 
+type Function struct {
+	Name   string
+	Start  uint64
+	End    uint64
+	BBList *defla.BBList
+}
 type Session struct {
-	Id       string
-	Capstone *cs.Capstone
-	Keystone *ks.Keystone
-	Emulator emu.Emulator
-	Module   emu.Module
+	Id        string
+	Functions map[uint64]*Function
+	Capstone  *cs.Capstone
+	Keystone  *ks.Keystone
+	Emulator  emu.Emulator
+	Module    emu.Module
 }
 
 func NewSession() (*Session, error) {
@@ -50,11 +58,12 @@ func NewSession() (*Session, error) {
 	fs.SetRootfsPath(core.Config.RootfsPath)
 
 	session := &Session{
-		Id:       "",
-		Emulator: e,
-		Capstone: capstone,
-		Keystone: keystone,
-		Module:   nil,
+		Id:        "",
+		Functions: make(map[uint64]*Function),
+		Emulator:  e,
+		Capstone:  capstone,
+		Keystone:  keystone,
+		Module:    nil,
 	}
 	return session, nil
 
@@ -87,7 +96,7 @@ func md5Sum(libPath string) (string, error) {
 
 		return "", err
 	}
-	return string(h.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 func (session *Session) Load(libPath string) error {
 	var err error = nil
@@ -103,4 +112,8 @@ func (session *Session) Load(libPath string) error {
 		logger.Errorf("md5sum for [%s] fail, error: %v", libPath, err)
 	}
 	return err
+}
+
+func (session *Session) ParseFunction(name string, start, end uint64) {
+
 }
