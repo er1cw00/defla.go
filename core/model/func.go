@@ -1,11 +1,10 @@
-package app
+package model
 
 import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
-	"strconv"
 
 	"github.com/er1cw00/btx.go/base/logger"
 )
@@ -16,12 +15,6 @@ type FuncModel struct {
 	End   uint64 `json: end`
 }
 
-func ParseHexString(s string) (uint64, error) {
-	if len(s) > 2 && s[0] == '0' && s[1] == 'x' {
-		return strconv.ParseUint(s[2:], 16, 64)
-	}
-	return 0, errors.New("malformed hex string")
-}
 func (m *FuncModel) UnmarshalJSON(b []byte) error {
 	var err error = nil
 	u := struct {
@@ -35,18 +28,18 @@ func (m *FuncModel) UnmarshalJSON(b []byte) error {
 	}
 	m.Name = u.Name
 
-	if m.Start, err = ParseHexString(u.Start); err != nil {
+	if m.Start, err = HexStringToUint64(u.Start); err != nil {
 		logger.Errorf("Marshal fail for 'start', error: %v", err)
 		return err
 	}
-	if m.End, err = ParseHexString(u.End); err != nil {
+	if m.End, err = HexStringToUint64(u.End); err != nil {
 		logger.Errorf("Marshal fail for 'end', error: %v", err)
 		return err
 	}
 	return nil
 }
 
-func UnmarshalFunctions(path string) ([]FuncModel, error) {
+func UnmarshalFuncModel(path string) ([]FuncModel, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
