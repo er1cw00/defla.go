@@ -6,6 +6,7 @@ import (
 
 	"github.com/er1cw00/btx.go/base/logger"
 	app "github.com/er1cw00/defla.go/app"
+	model "github.com/er1cw00/defla.go/core/model"
 )
 
 func apiCreateSession(ctx iris.Context) {
@@ -50,31 +51,33 @@ func apiParseFunc(ctx iris.Context) {
 		response(ctx, StatusBadRequest, "unknonw name")
 		return
 	}
-	if start, err = stringToUint64(ctx.URLParam("start")); err != nil {
-		if start, err = stringToUint64(ctx.PostValue("start")); err != nil {
+	if start, err = model.HexStringToUint64(ctx.URLParam("start")); err != nil {
+		if start, err = model.HexStringToUint64(ctx.PostValue("start")); err != nil {
 			response(ctx, StatusBadRequest, "unknonw start")
 			return
 		}
 	}
-	if end, err = stringToUint64(ctx.URLParam("end")); err != nil {
-		if end, err = stringToUint64(ctx.PostValue("end")); err != nil {
+	if end, err = model.HexStringToUint64(ctx.URLParam("end")); err != nil {
+		if end, err = model.HexStringToUint64(ctx.PostValue("end")); err != nil {
 			response(ctx, StatusBadRequest, "unknonw 'end' ")
 			return
 		}
 	}
-	logger.Debugf("apiParseFunc >> session: %s, name: %s, start: 0x%x, end: 0x%x", session, name, start, end)
+	logger.Debugf("apiParseFunc >> session: %s, name: %s, start: 0x%x, end: 0x%x", id, name, start, end)
 
 	var session *app.Session = nil
+	var fn *app.Function = nil
 	if session, err = app.Get(id); err != nil {
 		msg := fmt.Sprintf("session (%s) not found", id)
 		response(ctx, StatusInternalError, msg)
 		return
 	}
-	bbList, err := defla.NewBBList(session.Capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
-	if err != nil {
-		logger.Fatalf("parse function to basic block fail, err: %v", err)
+	if fn, err = session.ParseFunction(name, start, end); err != nil {
+		msg := fmt.Sprintf("parse function to basic block fail, err: %v", err)
+		response(ctx, StatusInternalError, msg)
+		return
 	}
-	fmt.Printf("%s\n", bbList.String())
-
-	response(ctx, StatusOK, "success")
+	ctx.StatusCode(iris.StatusOK)
+	ctx.WriteString(fn.String())
+	ctx.WriteString("\n")
 }

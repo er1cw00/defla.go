@@ -10,8 +10,8 @@ import (
 	egn "github.com/er1cw00/btx.go/engine"
 
 	app "github.com/er1cw00/defla.go/app"
-	//	defla "github.com/er1cw00/defla.go/app/defla"
 	core "github.com/er1cw00/defla.go/core"
+	model "github.com/er1cw00/defla.go/core/model"
 )
 
 var rootfsPath string = ""
@@ -39,12 +39,11 @@ func Example(modulePath, funcPath string) error {
 	var err error = nil
 	var session *app.Session = nil
 	var fn *app.Function = nil
-	var funcs []app.FuncModel = nil
-	if funcs, err = app.UnmarshalFunctions(funcPath); err != nil {
+	var funcs []model.FuncModel = nil
+	if funcs, err = model.UnmarshalFuncModel(funcPath); err != nil {
 		logger.Errorf("load defla func list fail, error: %v", err)
 		return err
 	}
-
 	if session, err = app.NewSession(); err != nil {
 		logger.Errorf("create session fail, error: %v", err)
 		return err
