@@ -52,12 +52,12 @@ func bbTypeLabel(typ uint32) string {
 }
 
 type BBList struct {
-	name     string
-	base     uint64
-	size     int
-	capstone *cs.Capstone
-	insn     []*cs.Instruction
-	list     *skiplist.SkipList
+	Name     string
+	Base     uint64
+	Size     int
+	Capstone *cs.Capstone
+	Insn     []*cs.Instruction
+	List     *skiplist.SkipList
 }
 
 func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BBList, error) {
@@ -71,12 +71,12 @@ func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BB
 		return nil, err
 	}
 	bblist := &BBList{
-		capstone: capstone,
-		name:     name,
-		base:     start,
-		size:     size,
-		insn:     insn,
-		list:     skipList,
+		Capstone: capstone,
+		Name:     name,
+		Base:     start,
+		Size:     size,
+		Insn:     insn,
+		List:     skipList,
 	}
 	return bblist, nil
 }
@@ -214,7 +214,7 @@ func (bbList *BBList) Draw() string {
 	})
 
 	var prev *dot.Node = nil
-	for elem := bbList.list.Front(); elem != nil; elem = elem.Next() {
+	for elem := bbList.List.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
 		node := createDotNode(g, bb)
 		if prev != nil {
@@ -236,8 +236,8 @@ func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
 	//	size := int(end - start + 4)
 	insn := make([]*cs.Instruction, 0)
 	for off := start; off <= end; off += 4 {
-		idx := int(off-bblist.base) / 4
-		insn = append(insn, bblist.insn[idx])
+		idx := int(off-bblist.Base) / 4
+		insn = append(insn, bblist.Insn[idx])
 	}
 	return insn
 }
@@ -245,7 +245,7 @@ func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
 func (bblist *BBList) String() string {
 	var sb strings.Builder
 	sb.WriteString("[\n")
-	for elem := bblist.list.Front(); elem != nil; elem = elem.Next() {
+	for elem := bblist.List.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
 		insn := insnToString(bblist.GetInstructions(bb.Start, bb.End))
 		fmt.Fprintf(&sb, "{\"type\": \"%s\", \"offset\": \"0x%x\", \"insn\": %s}",
@@ -253,39 +253,10 @@ func (bblist *BBList) String() string {
 			bb.Start,
 			insn)
 
-		if elem != bblist.list.Back() {
+		if elem != bblist.List.Back() {
 			sb.WriteString(",\n")
 		}
 	}
 	sb.WriteString("]\n")
 	return sb.String()
 }
-
-/*
-var dotExec = "/usr/local/bin/dot"
-
-func runDotToImage(outfname string, format string, t []byte) (string, error) {
-	if dotExec == "" {
-		dot, err := exec.LookPath("dot")
-		if err != nil {
-			logger.Fatalf("unable to find program 'dot', please install it or check your PATH\n")
-		}
-		dotExec = dot
-	}
-
-	var img string
-	if outfname == "" {
-		img = filepath.Join(os.TempDir(), fmt.Sprintf("go-callvis_export.%s", format))
-	} else {
-		img = fmt.Sprintf("%s.%s", outfname, format)
-	}
-	cmd := exec.Command(dotExec, fmt.Sprintf("-T%s", format), "-o", img)
-	cmd.Stdin = bytes.NewReader(dot)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("command '%v': %v\n%v", cmd, err, stderr.String())
-	}
-	return img, nil
-}
-*/

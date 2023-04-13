@@ -10,7 +10,7 @@ import (
 	egn "github.com/er1cw00/btx.go/engine"
 
 	app "github.com/er1cw00/defla.go/app"
-	defla "github.com/er1cw00/defla.go/app/defla"
+	//	defla "github.com/er1cw00/defla.go/app/defla"
 	core "github.com/er1cw00/defla.go/core"
 )
 
@@ -38,6 +38,7 @@ func init() {
 func Example(modulePath, funcPath string) error {
 	var err error = nil
 	var session *app.Session = nil
+	var fn *app.Function = nil
 	var funcs []app.FuncModel = nil
 	if funcs, err = app.UnmarshalFunctions(funcPath); err != nil {
 		logger.Errorf("load defla func list fail, error: %v", err)
@@ -59,12 +60,12 @@ func Example(modulePath, funcPath string) error {
 		logger.Debugf("func(%d), name(%s), start(0x%0x), end(0x%x)", i, fn.Name, fn.Start, fn.End)
 	}
 
-	fn := funcs[12]
-	bbList, err := defla.NewBBList(session.Capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
+	f := funcs[12]
+	fn, err = session.ParseFunction(f.Name, f.Start, f.End)
 	if err != nil {
 		logger.Fatalf("parse function to basic block fail, err: %v", err)
 	}
-	fmt.Printf("%s\n", bbList.String())
+	fmt.Printf("%s\n", fn.String())
 	//_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
 
 	session.Close()

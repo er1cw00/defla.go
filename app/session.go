@@ -52,12 +52,11 @@ func Append(id string, session *Session) error {
 func Remove(id string) {
 	delete(sessions, id)
 }
+
 type Function struct {
-	Name   string
-	Start  uint64
-	End    uint64
-	BBList *defla.BBList
+	defla.BBList
 }
+
 type Session struct {
 	Id        string
 	Functions map[uint64]*Function
@@ -149,6 +148,19 @@ func (session *Session) Load(libPath string) error {
 	return err
 }
 
-func (session *Session) ParseFunction(name string, start, end uint64) {
+func (session *Session) ParseFunction(name string, start, end uint64) (*Function, error) {
+	var fn *Function = nil
+	var found bool = false
+	if fn, found = session.Functions[start]; found {
+		return fn, nil
+	}
+	m := session.Module
+	bbList, err := defla.NewBBList(session.Capstone, name, m.GetLoadBase()+start, start, end)
+	if err != nil {
+		return nil, err
+	}
 
+	fn = &Function{BBList: *bbList}
+	session.Functions[start] = fn
+	return fn, nil
 }
