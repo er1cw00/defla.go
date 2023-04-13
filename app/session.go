@@ -151,8 +151,8 @@ func (session *Session) Load(libPath string) error {
 func (session *Session) ParseFunction(name string, start, end uint64) (*Function, error) {
 	var fn *Function = nil
 	var found bool = false
-	if fn, found = session.Functions[start]; found {
-		return fn, nil
+	if _, found = session.Functions[start]; found {
+		delete(session.Functions, start)
 	}
 	m := session.Module
 	bbList, err := defla.NewBBList(session.Capstone, name, m.GetLoadBase()+start, start, end)
@@ -163,4 +163,11 @@ func (session *Session) ParseFunction(name string, start, end uint64) (*Function
 	fn = &Function{BBList: *bbList}
 	session.Functions[start] = fn
 	return fn, nil
+}
+
+func (session *Session) FindFunction(offset uint64) *Function {
+	if fn, found := session.Functions[offset]; found {
+		return fn
+	}
+	return nil
 }
