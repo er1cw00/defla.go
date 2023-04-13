@@ -3,6 +3,7 @@ package app
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"io"
 	"os"
 
@@ -17,6 +18,40 @@ import (
 	//egn "github.com/er1cw00/btx.go/engine"
 )
 
+var ErrorSessionExist = errors.New("Session Exist")
+var ErrorSessionNotExist = errors.New("Session Not Exist")
+var ErrorSessionLimited = errors.New("Max Session Limited")
+
+const kMaxSession int = 5
+
+var sessions map[string]*Session = make(map[string]*Session)
+
+func CheckLimited() error {
+	if len(sessions) >= kMaxSession {
+		return ErrorSessionLimited
+	}
+	return nil
+}
+func Get(id string) (*Session, error) {
+	sess, found := sessions[id]
+	if found {
+		return sess, nil
+	}
+	return nil, ErrorSessionNotExist
+}
+
+func Append(id string, session *Session) error {
+	_, found := sessions[id]
+	if found {
+		return ErrorSessionExist
+	}
+	sessions[id] = session
+	return nil
+}
+
+func Remove(id string) {
+	delete(sessions, id)
+}
 type Function struct {
 	Name   string
 	Start  uint64
