@@ -88,54 +88,56 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 	var s uint64 = start
 	for i := 0; i < len(insn); i += 1 {
 		addr := insn[i].GetAddr()
-		//detail := insn[i].GetDetail().(*cs.Arm64Detail)
-		// logger.Debugf("    %d:  0x%x  %-4s %24s;      jump:%5v, call:%5v, ret:%5v, ir:%5v, cc:%03x",
-		// 	i,
-		// 	addr,
-		// 	insn[i].GetMnemonic(),
-		// 	insn[i].GetOptStr(),
-		// 	insn[i].CheckGroup(cs.CS_GRP_JUMP),
-		// 	insn[i].CheckGroup(cs.CS_GRP_CALL),
-		// 	insn[i].CheckGroup(cs.CS_GRP_RET),
-		// 	insn[i].CheckGroup(cs.CS_GRP_BRANCH_RELATIVE),
-		// 	detail.CC)
+		detail := insn[i].GetDetail().(*cs.Arm64Detail)
+		logger.Debugf("    %d:  0x%x  %-4s %24s;      jump:%5v, call:%5v, ret:%5v, ir:%5v, cc:%03x",
+			i,
+			addr,
+			insn[i].GetMnemonic(),
+			insn[i].GetOptStr(),
+			insn[i].CheckGroup(cs.CS_GRP_JUMP),
+			insn[i].CheckGroup(cs.CS_GRP_CALL),
+			insn[i].CheckGroup(cs.CS_GRP_RET),
+			insn[i].CheckGroup(cs.CS_GRP_BRANCH_RELATIVE),
+			detail.CC)
 
-		if (insn[i].CheckGroup(cs.CS_GRP_JUMP) || insn[i].CheckGroup(cs.CS_GRP_RET)) &&
-			!insn[i].CheckGroup(cs.CS_GRP_CALL) {
-			if ext := checkOpExtDetail(insn[i]); ext != nil {
-				if ext.OpType == R_OP_TYPE_RET ||
-					ext.OpType == R_OP_TYPE_JMP ||
-					ext.OpType == R_OP_TYPE_CJMP ||
-					ext.OpType == R_OP_TYPE_RJMP ||
-					ext.OpType == R_OP_TYPE_MCJMP {
-
-					// logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
-					// 	opTypeToString(ext.OpType),
-					// 	s, addr,
-					// 	opCondToString(ext.OpCond),
-					// 	ext.Jump, ext.Fail)
-
-					next := addr + 4
-					bb := newBB(s, addr)
-					bb.Cond = ext.OpCond
-					if ext.OpCond == R_COND_INV {
-						bb.Next = ext.Jump
-					} else {
-						bb.Left = ext.Jump
-						bb.Right = ext.Fail
-					}
-					bbList.Set(s, bb)
-					if ext.Jump != 0 {
-						if _, ok := bbList.GetValue(ext.Jump); !ok {
-							jumpMap[ext.Jump] = true
-						}
-					} else if ext.OpType != R_OP_TYPE_RET {
-						panic(" jump == 0")
-					}
-					s = next
-				}
-			}
+		// if (insn[i].CheckGroup(cs.CS_GRP_JUMP) || insn[i].CheckGroup(cs.CS_GRP_RET)) &&
+		// 	!insn[i].CheckGroup(cs.CS_GRP_CALL) {
+		op := newOp(insn[i])
+		if op == nil {
+			panic(op)
 		}
+		if op.OpType == R_OP_TYPE_RET ||
+			op.OpType == R_OP_TYPE_JMP ||
+			op.OpType == R_OP_TYPE_CJMP ||
+			op.OpType == R_OP_TYPE_RJMP ||
+			op.OpType == R_OP_TYPE_MCJMP {
+
+			// logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
+			// 	opTypeToString(op.OpType),
+			// 	s, addr,
+			// 	opCondToString(op.OpCond),
+			// 	op.Jump, op.Fail)
+
+			next := addr + 4
+			bb := newBB(s, addr)
+			bb.Cond = op.OpCond
+			if op.OpCond == R_COND_INV {
+				bb.Next = op.Jump
+			} else {
+				bb.Left = op.Jump
+				bb.Right = op.Fail
+			}
+			bbList.Set(s, bb)
+			if op.Jump != 0 {
+				if _, ok := bbList.GetValue(op.Jump); !ok {
+					jumpMap[op.Jump] = true
+				}
+			} else if op.OpType != R_OP_TYPE_RET {
+				panic(" jump == 0")
+			}
+			s = next
+		}
+
 	}
 	for k, _ := range jumpMap {
 		if bbList.Get(k) == nil {

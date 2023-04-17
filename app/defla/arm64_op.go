@@ -43,7 +43,7 @@ func checkOpCond(cc uint32) uint32 {
 	return _cc
 }
 
-func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
+func newOp(insn *cs.Instruction) *Op {
 
 	// var result = false
 	var opType uint32 = R_OP_TYPE_NULL
@@ -139,11 +139,12 @@ func checkOpExtDetail(insn *cs.Instruction) *OpExtDetail {
 		opType = R_OP_TYPE_RJMP
 	}
 	if opType != R_OP_TYPE_NULL {
-		return &OpExtDetail{
-			OpType: opType,
-			OpCond: opCond,
-			Jump:   jump,
-			Fail:   fail,
+		return &Op{
+			Instruction: *insn,
+			OpType:      opType,
+			OpCond:      opCond,
+			Jump:        jump,
+			Fail:        fail,
 		}
 	}
 	return nil

@@ -1,8 +1,8 @@
 package defla
 
 import (
-//"fmt"
-//	cs "github.com/er1cw00/btx.go/asm/cs"
+	//"fmt"
+	cs "github.com/er1cw00/btx.go/asm/cs"
 )
 
 /* * *
@@ -212,7 +212,8 @@ func opTypeToString(opType uint32) string {
 	return "undefined"
 }
 
-type OpExtDetail struct {
+type Op struct {
+	cs.Instruction
 	OpType uint32
 	OpCond uint32
 	Jump   uint64
