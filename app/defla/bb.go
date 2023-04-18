@@ -103,7 +103,7 @@ func (bbList *BBList) Draw() string {
 			g.Edge(*prev, node)
 		}
 		prev = &node
-		logger.Debugf("BB =>  [0x%0x - 0x%x]  Cond:%s, Next:0x%x, Left:0x%x, Right:0x%x",
+		logger.Debugf("BB => [0x%0x - 0x%x] Cond:%s, Next:0x%x, Left:0x%x, Right:0x%x",
 			elem.Key().(uint64),
 			bb.End,
 			opCondToString(bb.Cond),
