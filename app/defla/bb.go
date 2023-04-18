@@ -56,7 +56,7 @@ type BBList struct {
 	Base     uint64
 	Size     int
 	Capstone *cs.Capstone
-	Insn     []*cs.Instruction
+	Insn     []*Op
 	List     *skiplist.SkipList
 }
 
@@ -66,7 +66,7 @@ func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BB
 	if err != nil {
 		return nil, err
 	}
-	skipList, err := parseFunction(insn, name, start, end)
+	skipList, opList, err := parseFunction(insn, name, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +75,13 @@ func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BB
 		Name:     name,
 		Base:     start,
 		Size:     size,
-		Insn:     insn,
+		Insn:     opList,
 		List:     skipList,
 	}
 	return bblist, nil
 }
 
-func (bbList *BBList) Draw() string {
+func (bblist *BBList) Draw() string {
 	g := dot.NewGraph(dot.Directed)
 	g.AttributesMap.Attr("bgcolor", "transparent")
 	g.NodeInitializer(func(n dot.Node) {
@@ -96,9 +96,9 @@ func (bbList *BBList) Draw() string {
 	})
 
 	var prev *dot.Node = nil
-	for elem := bbList.List.Front(); elem != nil; elem = elem.Next() {
+	for elem := bblist.List.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
-		node := createDotNode(g, bb)
+		node := bblist.createDotNode(g, bb)
 		if prev != nil {
 			g.Edge(*prev, node)
 		}
@@ -114,9 +114,9 @@ func (bbList *BBList) Draw() string {
 	return g.String()
 }
 
-func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
+func (bblist *BBList) GetInstructions(start, end uint64) []*Op {
 	//	size := int(end - start + 4)
-	insn := make([]*cs.Instruction, 0)
+	insn := make([]*Op, 0)
 	for off := start; off <= end; off += 4 {
 		idx := int(off-bblist.Base) / 4
 		insn = append(insn, bblist.Insn[idx])
@@ -124,12 +124,29 @@ func (bblist *BBList) GetInstructions(start, end uint64) []*cs.Instruction {
 	return insn
 }
 
+func (bblist *BBList) checkBBType(bb *BB) uint32 {
+	opList := bblist.GetInstructions(bb.Start, bb.End)
+	count := len(opList)
+	for i := 0; i < count; i++ {
+		op := opList[i]
+		if (op.OpType |
+			R_OP_TYPE_SWI |
+			R_OP_TYPE_STORE |
+			R_OP_TYPE_LOAD |
+			R_OP_TYPE_CALL |
+			R_OP_TYPE_UCALL |
+			R_OP_TYPE_RET) != 0 {
+			return BB_TYPE_USED
+		}
+	}
+	return 0
+}
 func (bblist *BBList) String() string {
 	var sb strings.Builder
 	sb.WriteString("[\n")
 	for elem := bblist.List.Front(); elem != nil; elem = elem.Next() {
 		bb := elem.Value.(*BB)
-		insn := insnToString(bblist.GetInstructions(bb.Start, bb.End))
+		insn := opToString(bblist.GetInstructions(bb.Start, bb.End))
 		fmt.Fprintf(&sb, "{\"type\": \"%s\", \"offset\": \"0x%x\", \"insn\": %s}",
 			bbTypeLabel(bb.Type),
 			bb.Start,
@@ -143,12 +160,27 @@ func (bblist *BBList) String() string {
 	return sb.String()
 }
 
-func createDotNode(g *dot.Graph, bb *BB) dot.Node {
+func (bblist *BBList) createDotNode(g *dot.Graph, bb *BB) dot.Node {
 	label := fmt.Sprintf("0x%x", bb.Start)
-	return g.Node(label)
+	node := g.Node(label)
+	insn := bblist.GetInstructions(bb.Start, bb.End)
+	msg := label + "\n"
+	for i := 0; i < len(insn); i++ {
+		ins := insn[i]
+		msg += fmt.Sprintf("0x%x %s %s\\l", ins.GetAddr(), ins.GetMnemonic(), ins.GetOptStr())
+	}
+	if bb.Type == BB_TYPE_OBF {
+		node.Attr("fillcolor ", "#b1dc56")
+	} else if bb.Type == BB_TYPE_USED {
+		node.Attr("fillcolor ", "#41abe9")
+	} else {
+		node.Attr("fillcolor ", "#878787")
+	}
+	node.Attr("label", dot.Literal("\""+msg+"\""))
+	return node
 }
 
-func insnToString(insn []*cs.Instruction) string {
+func opToString(insn []*Op) string {
 	var sb strings.Builder
 	sb.WriteString("[")
 	for i, ins := range insn {
@@ -162,9 +194,10 @@ func insnToString(insn []*cs.Instruction) string {
 	return sb.String()
 }
 
-func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*skiplist.SkipList, error) {
+func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*skiplist.SkipList, []*Op, error) {
 
 	bbList := skiplist.New(skiplist.Uint64Asc)
+	opList := make([]*Op, 0)
 	jumpMap := make(map[uint64]bool, 0)
 	var s uint64 = start
 	for i := 0; i < len(insn); i += 1 {
@@ -187,11 +220,13 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 		if op == nil {
 			panic(op)
 		}
-		if op.OpType == R_OP_TYPE_RET ||
-			op.OpType == R_OP_TYPE_JMP ||
-			op.OpType == R_OP_TYPE_CJMP ||
-			op.OpType == R_OP_TYPE_RJMP ||
-			op.OpType == R_OP_TYPE_MCJMP {
+		opList = append(opList, op)
+		if op.OpType|R_OP_TYPE_JMP|R_OP_TYPE_RET != 0 {
+			// if op.OpType == R_OP_TYPE_RET ||
+			// 	op.OpType == R_OP_TYPE_JMP ||
+			// 	op.OpType == R_OP_TYPE_CJMP ||
+			// 	op.OpType == R_OP_TYPE_RJMP ||
+			// 	op.OpType == R_OP_TYPE_MCJMP {
 
 			// logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
 			// 	opTypeToString(op.OpType),
@@ -258,5 +293,5 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 			}
 		}
 	}
-	return bbList, nil
+	return bbList, opList, nil
 }
