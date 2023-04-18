@@ -64,7 +64,7 @@ func Example(modulePath, funcPath string) error {
 	if err != nil {
 		logger.Fatalf("parse function to basic block fail, err: %v", err)
 	}
-	fmt.Printf("%s\n", fn.String())
+	fmt.Printf("%s\n", fn.Draw())
 	//_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
 
 	session.Close()
