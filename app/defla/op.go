@@ -1,7 +1,8 @@
 package defla
 
 import (
-	//"fmt"
+	"fmt"
+
 	cs "github.com/er1cw00/btx.go/asm/cs"
 )
 
@@ -218,4 +219,8 @@ type Op struct {
 	OpCond uint32
 	Jump   uint64
 	Fail   uint64
+}
+
+func (op *Op) String() string {
+	return fmt.Sprintf("0x%x %s %s", op.GetAddr(), op.GetMnemonic(), op.GetOptStr())
 }

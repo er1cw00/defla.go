@@ -78,6 +78,10 @@ func NewBBList(capstone *cs.Capstone, name string, code, start, end uint64) (*BB
 		Insn:     opList,
 		List:     skipList,
 	}
+	for elem := bblist.List.Front(); elem != nil; elem = elem.Next() {
+		bb := elem.Value.(*BB)
+		bb.Type = bblist.checkBBType(bb)
+	}
 	return bblist, nil
 }
 
@@ -86,6 +90,7 @@ func (bblist *BBList) Draw() string {
 	g.AttributesMap.Attr("bgcolor", "transparent")
 	g.NodeInitializer(func(n dot.Node) {
 		n.Attr("shape", "box")
+		n.Attr("width", "4")
 		n.Attr("fontname", "arial")
 		n.Attr("style", "filled")
 		n.Attr("nojustify", "true")
@@ -127,19 +132,24 @@ func (bblist *BBList) GetInstructions(start, end uint64) []*Op {
 func (bblist *BBList) checkBBType(bb *BB) uint32 {
 	opList := bblist.GetInstructions(bb.Start, bb.End)
 	count := len(opList)
+
+	var typ uint32 = BB_TYPE_UNK
 	for i := 0; i < count; i++ {
 		op := opList[i]
-		if (op.OpType |
-			R_OP_TYPE_SWI |
-			R_OP_TYPE_STORE |
-			R_OP_TYPE_LOAD |
-			R_OP_TYPE_CALL |
-			R_OP_TYPE_UCALL |
-			R_OP_TYPE_RET) != 0 {
-			return BB_TYPE_USED
+		opType := op.OpType & R_OP_TYPE_MASK
+		if opType == R_OP_TYPE_SWI ||
+			opType == R_OP_TYPE_STORE ||
+			opType == R_OP_TYPE_LOAD ||
+			opType == R_OP_TYPE_CALL ||
+			opType == R_OP_TYPE_UCALL ||
+			opType == R_OP_TYPE_RET {
+			//logger.Debugf("   >>> opType: %s ; \"0x%x %s %s\"", opTypeToString(opType), op.GetAddr(), op.GetMnemonic(), op.GetOptStr())
+			typ = BB_TYPE_USED
+			break
 		}
 	}
-	return 0
+	logger.Debugf("BB: [0x%x - 0x%x]  Type: %s", bb.Start, bb.End, bbTypeLabel(typ))
+	return typ
 }
 func (bblist *BBList) String() string {
 	var sb strings.Builder
@@ -196,7 +206,7 @@ func opToString(insn []*Op) string {
 
 func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*skiplist.SkipList, []*Op, error) {
 
-	bbList := skiplist.New(skiplist.Uint64Asc)
+	bblist := skiplist.New(skiplist.Uint64Asc)
 	opList := make([]*Op, 0)
 	jumpMap := make(map[uint64]bool, 0)
 	var s uint64 = start
@@ -220,15 +230,26 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 		if op == nil {
 			panic(op)
 		}
-		opList = append(opList, op)
-		if op.OpType|R_OP_TYPE_JMP|R_OP_TYPE_RET != 0 {
-			// if op.OpType == R_OP_TYPE_RET ||
-			// 	op.OpType == R_OP_TYPE_JMP ||
-			// 	op.OpType == R_OP_TYPE_CJMP ||
-			// 	op.OpType == R_OP_TYPE_RJMP ||
-			// 	op.OpType == R_OP_TYPE_MCJMP {
 
-			// logger.Debugf("         Type:%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
+		opList = append(opList, op)
+
+		// if insn[i].CheckGroup(cs.CS_GRP_JUMP) || insn[i].CheckGroup(cs.CS_GRP_RET) {
+		// 	logger.Debugf("         %s Type:0x%x,%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x ",
+		// 		op.String(),
+		// 		op.OpType,
+		// 		opTypeToString(op.OpType),
+		// 		s, addr,
+		// 		opCondToString(op.OpCond),
+		// 		op.Jump, op.Fail)
+		// }
+		if op.OpType == R_OP_TYPE_RET ||
+			op.OpType == R_OP_TYPE_JMP ||
+			op.OpType == R_OP_TYPE_CJMP ||
+			op.OpType == R_OP_TYPE_RJMP ||
+			op.OpType == R_OP_TYPE_MCJMP {
+
+			// logger.Debugf("        >>>> Type:0x%x,%s, block[0x%x - 0x%x], CC: %s, Jump:0x%x, Fail:0x%x",
+			// 	op.OpType,
 			// 	opTypeToString(op.OpType),
 			// 	s, addr,
 			// 	opCondToString(op.OpCond),
@@ -243,9 +264,9 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 				bb.Left = op.Jump
 				bb.Right = op.Fail
 			}
-			bbList.Set(s, bb)
+			bblist.Set(s, bb)
 			if op.Jump != 0 {
-				if _, ok := bbList.GetValue(op.Jump); !ok {
+				if _, ok := bblist.GetValue(op.Jump); !ok {
 					jumpMap[op.Jump] = true
 				}
 			} else if op.OpType != R_OP_TYPE_RET {
@@ -256,11 +277,11 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 
 	}
 	for k, _ := range jumpMap {
-		if bbList.Get(k) == nil {
+		if bblist.Get(k) == nil {
 			logger.Debugf("jump not found: 0x%x", k)
-			e := bbList.Find(k)
+			e := bblist.Find(k)
 			if e == nil {
-				prev := bbList.Back()
+				prev := bblist.Back()
 				if prev == nil {
 					logger.Fatalf("          not bb in list?")
 				}
@@ -268,7 +289,7 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 				prevBB.Next = k
 				prevBB.Cond = R_COND_INV
 				bb := newBB(k, end)
-				bbList.Set(k, bb)
+				bblist.Set(k, bb)
 				//logger.Debugf("          elem is empty, new BB: [0x%0x - 0x%x]", bb.Start, bb.End)
 				continue
 			} else {
@@ -288,10 +309,11 @@ func parseFunction(insn []*cs.Instruction, name string, start, end uint64) (*ski
 				prevBB.Left = BB_INVALID
 				prevBB.Right = BB_INVALID
 				prevBB.End = k - 4
-				bbList.Set(k, bb)
+				bblist.Set(k, bb)
 				//logger.Debugf("          match BB: [0x%0x - 0x%x], new BB: [0x%0x - 0x%x]", prevBB.Start, prevBB.End, bb.Start, bb.End)
 			}
 		}
 	}
-	return bbList, opList, nil
+
+	return bblist, opList, nil
 }

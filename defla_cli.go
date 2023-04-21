@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	base "github.com/er1cw00/btx.go/base"
@@ -59,12 +60,21 @@ func Example(modulePath, funcPath string) error {
 		logger.Debugf("func(%d), name(%s), start(0x%0x), end(0x%x)", i, fn.Name, fn.Start, fn.End)
 	}
 
-	f := funcs[12]
+	f := funcs[0]
 	fn, err = session.ParseFunction(f.Name, f.Start, f.End)
 	if err != nil {
 		logger.Fatalf("parse function to basic block fail, err: %v", err)
 	}
-	fmt.Printf("%s\n", fn.Draw())
+	dot := fn.Draw()
+
+	if f, err := os.Create("./x.dot"); err == nil {
+		defer f.Close()
+		if _, err = io.WriteString(f, dot); err != nil {
+			logger.Errorf("write x.dot fail, err: %v", err)
+		}
+	}
+
+	fmt.Printf("end \n")
 	//_ = defla.ParseFunction(naga.capstone, fn.Name, m.GetLoadBase()+fn.Start, fn.Start, fn.End)
 
 	session.Close()
